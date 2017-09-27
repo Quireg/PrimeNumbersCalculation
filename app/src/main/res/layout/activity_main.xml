@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/colorBlack"
+    tools:context="ua.in.quireg.primenumberscalculation.ui.MainActivity">
+
+
+    <View
+        android:id="@+id/centerShim"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:layout_centerHorizontal="true"
+        android:layout_centerVertical="true"
+        android:visibility="invisible" />
+
+    <Button
+        android:id="@+id/button_start_computation"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_above="@+id/centerShim"
+        android:layout_centerHorizontal="true"
+        android:text="@string/ui_start_computation" />
+
+    <Button
+        android:id="@+id/button_resume_computation"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_above="@+id/centerShim"
+        android:layout_centerHorizontal="true"
+        android:text="@string/ui_resume_computation"
+        android:visibility="invisible" />
+
+    <Button
+        android:id="@+id/button_stop_computation"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@+id/centerShim"
+        android:layout_centerHorizontal="true"
+        android:text="@string/ui_stop_computation"
+        android:visibility="invisible" />
+
+</RelativeLayout>
