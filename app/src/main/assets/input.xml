@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+    <intervals>
+        <interval>
+            <id>1</id>
+            <low>100</low>
+            <high> 20000000</high>
+        </interval>
+        <interval>
+            <id>2</id>
+            <low>5000</low>
+            <high>88800000 </high>
+        </interval>
+        <interval>
+            <id>3</id>
+            <low> 500</low>
+            <high>88800000 </high>
+        </interval>
+    </intervals>
+</root>

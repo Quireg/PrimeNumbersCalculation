@@ -1,0 +1,7 @@
+<resources>
+    <string name="app_name">PrimeNumbersCalculation</string>
+
+    <string name="ui_start_computation">Start computation</string>
+    <string name="ui_resume_computation">Resume computation</string>
+    <string name="ui_stop_computation">Stop computation</string>
+</resources>
