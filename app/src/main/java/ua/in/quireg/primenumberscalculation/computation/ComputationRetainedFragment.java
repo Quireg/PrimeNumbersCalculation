@@ -35,7 +35,6 @@ public class ComputationRetainedFragment extends Fragment {
     private ExecutorService executorService;
     private TaskCompletedCallback taskCompletedCallback;
     Disposable storingThreadDisposable;
-    Disposable managerThreadDisposable;
 
 
     public ComputationRetainedFragment() {
@@ -151,11 +150,11 @@ public class ComputationRetainedFragment extends Fragment {
                         Log.d(LOG_TAG, "Manager thread initiated with thread name: "
                                 + Thread.currentThread().getName());
 
-                        //Initially fill storage and send to UI
-                        for (int i = 0; i < models.size(); i++) {
-                            primeNumbersStorage.append(i + 1, 0);
-                        }
-                        storingThreadSubject.onNext(primeNumbersStorage.clone());
+//                        //Initially fill storage and send to UI
+//                        for (int i = 0; i < models.size(); i++) {
+//                            primeNumbersStorage.append(i + 1, 0);
+//                        }
+//                        storingThreadSubject.onNext(primeNumbersStorage.clone());
                     }
 
                     @Override
@@ -202,7 +201,7 @@ public class ComputationRetainedFragment extends Fragment {
         return s -> {
             Log.d(LOG_TAG, "Computation started on thread number " + Thread.currentThread().getName());
 
-            int[] primeNumbersFound = new int[]{Integer.parseInt(Thread.currentThread().getName()), 0};
+            int[] primeNumbersFound = new int[]{model.id, 0};
 
             //implementation uses Sieve of Eratosthenes, described here: https://habrahabr.ru/post/122538/
 

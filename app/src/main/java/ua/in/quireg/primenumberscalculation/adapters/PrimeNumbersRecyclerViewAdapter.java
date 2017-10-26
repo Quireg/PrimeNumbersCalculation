@@ -65,10 +65,11 @@ public class PrimeNumbersRecyclerViewAdapter extends RecyclerView.Adapter<PrimeN
 
     @Override
     public void onBindViewHolder(final ViewHolder holder, int position) {
-        position = position + 1;
-        holder.mItem = new ComputationResultModel(position, mValues.get(position));
-        holder.mIdView.setText("Thread number " + position);
-        holder.mContentView.setText("prime numbers generated: " + mValues.get(position));
+        int threadID = mValues.keyAt(position);
+        int numbersGenerated = mValues.valueAt(position);
+        holder.mItem = new ComputationResultModel(threadID, numbersGenerated);
+        holder.mIdView.setText("Thread number " + threadID);
+        holder.mContentView.setText("prime numbers generated: " + numbersGenerated);
 
     }
 
@@ -79,6 +80,7 @@ public class PrimeNumbersRecyclerViewAdapter extends RecyclerView.Adapter<PrimeN
 
     @Override
     public int getItemViewType(int position) {
+
         if (position == 0 || position % 2 == 0) {
             return LEFT_VIEW;
         } else {

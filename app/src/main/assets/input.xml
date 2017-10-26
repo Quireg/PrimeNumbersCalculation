@@ -2,19 +2,19 @@
 <root>
     <intervals>
         <interval>
-            <id>1</id>
+            <id>5</id>
             <low>100</low>
-            <high> 20000000</high>
+            <high> 20000</high>
         </interval>
         <interval>
-            <id>2</id>
+            <id>6</id>
             <low>5000</low>
-            <high>88800000 </high>
+            <high>88800 </high>
         </interval>
         <interval>
             <id>3</id>
             <low> 500</low>
-            <high>88800000 </high>
+            <high>88800 </high>
         </interval>
     </intervals>
 </root>

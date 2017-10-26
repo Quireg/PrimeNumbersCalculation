@@ -44,10 +44,10 @@ public class FakeSocket {
         fakeSocket.isConnected = true;
 
         //Emulate 5% error on connect
-//        if(Math.random()*100 < 5){
-//            fakeSocket.isConnected = false;
-//            throw new ConnectionUnexpectedlyClosedException("Oops. Connection closed =(");
-//        }
+        if(Math.random()*100 < 5){
+            fakeSocket.isConnected = false;
+            throw new ConnectionUnexpectedlyClosedException("Oops. Connection closed =(");
+        }
         return fakeSocket;
     }
 
@@ -58,10 +58,10 @@ public class FakeSocket {
         nominatedData = array;
 
         //Emulate 5% error on transfer
-//        if(Math.random()*100 < 5){
-//            rollback();
-//            throw new ConnectionUnexpectedlyClosedException("Oops. Connection closed =(");
-//        }
+        if(Math.random()*100 < 5){
+            rollback();
+            throw new ConnectionUnexpectedlyClosedException("Oops. Connection closed =(");
+        }
         commit();
     }
 
