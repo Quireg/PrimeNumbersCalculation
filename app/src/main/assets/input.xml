@@ -3,18 +3,58 @@
     <intervals>
         <interval>
             <id>5</id>
-            <low>100</low>
-            <high> 20000</high>
+            <low>1820</low>
+            <high> 1930000</high>
         </interval>
         <interval>
             <id>6</id>
-            <low>5000</low>
-            <high>88800 </high>
+            <low>88800</low>
+            <high>1920000 </high>
         </interval>
         <interval>
             <id>3</id>
             <low> 500</low>
-            <high>88800 </high>
+            <high>8880000 </high>
+        </interval>
+        <interval>
+            <id>7</id>
+            <low> 500</low>
+            <high>8880000 </high>
+        </interval>
+        <interval>
+            <id>23</id>
+            <low> 500</low>
+            <high>8880000 </high>
+        </interval>
+        <interval>
+            <id>12</id>
+            <low> 500</low>
+            <high>8880000 </high>
+        </interval>
+        <interval>
+            <id>44</id>
+            <low> 500</low>
+            <high>8880000 </high>
+        </interval>
+        <interval>
+            <id>1123123</id>
+            <low> 500</low>
+            <high>8880000 </high>
+        </interval>
+        <interval>
+            <id>112</id>
+            <low> 500</low>
+            <high>8880000 </high>
+        </interval>
+        <interval>
+            <id>414</id>
+            <low> 500</low>
+            <high>8880000 </high>
+        </interval>
+        <interval>
+            <id>222</id>
+            <low> 500</low>
+            <high>8880000 </high>
         </interval>
     </intervals>
 </root>

@@ -1,87 +1,85 @@
 package ua.in.quireg.primenumberscalculation.computation;
 
-
 import android.annotation.SuppressLint;
 import android.util.SparseIntArray;
 
 import ua.in.quireg.primenumberscalculation.exceptions.ConnectionUnexpectedlyClosedException;
 import ua.in.quireg.primenumberscalculation.interfaces.UpdateRecyclerViewCallback;
 
+@SuppressWarnings("WeakerAccess")
 public class FakeSocket {
-
     private static final String LOG_TAG = FakeSocket.class.getSimpleName();
 
     @SuppressLint("StaticFieldLeak")
-    private static FakeSocket fakeSocket;
+    private static FakeSocket sFakeSocket;
 
-    private SparseIntArray data;
-    private SparseIntArray nominatedData;
+    private SparseIntArray mData;
+    private SparseIntArray mNominatedData;
 
-    private boolean isConnected;
+    private boolean mIsConnected;
 
-    private UpdateRecyclerViewCallback mCtx;
+    private UpdateRecyclerViewCallback mUpdateRVCallback;
 
     private FakeSocket() {
-
     }
 
-    public static FakeSocket getInstance(){
-        if(fakeSocket == null){
-            fakeSocket = new FakeSocket();
+    public static synchronized FakeSocket getInstance() {
+        if (sFakeSocket == null) {
+            sFakeSocket = new FakeSocket();
         }
-        return fakeSocket;
+        return sFakeSocket;
     }
 
-    public void init(UpdateRecyclerViewCallback context){
-            mCtx = context;
+    public void init(UpdateRecyclerViewCallback context) {
+        mUpdateRVCallback = context;
     }
 
     public static FakeSocket connect() throws ConnectionUnexpectedlyClosedException {
-        if(fakeSocket == null){
+        if (sFakeSocket == null) {
             throw new ConnectionUnexpectedlyClosedException("You must call init() first!");
         }
 
-        fakeSocket.isConnected = true;
+        sFakeSocket.mIsConnected = true;
 
         //Emulate 5% error on connect
-        if(Math.random()*100 < 5){
-            fakeSocket.isConnected = false;
+        if (Math.random() * 100 < 5 && false) {
+            sFakeSocket.mIsConnected = false;
             throw new ConnectionUnexpectedlyClosedException("Oops. Connection closed =(");
         }
-        return fakeSocket;
+        return sFakeSocket;
     }
 
     public void transferData(SparseIntArray array) throws ConnectionUnexpectedlyClosedException {
-        if(!isConnected){
+        if (!mIsConnected) {
             throw new ConnectionUnexpectedlyClosedException("You must call connect() first!");
         }
-        nominatedData = array;
+        mNominatedData = array;
 
         //Emulate 5% error on transfer
-        if(Math.random()*100 < 5){
+        if (Math.random() * 100 < 5 && false) {
             rollback();
-            throw new ConnectionUnexpectedlyClosedException("Oops. Connection closed =(");
+            throw new ConnectionUnexpectedlyClosedException("Oops. Connection closed =( ");
         }
         commit();
     }
 
-    public void close(){
+    public void close() {
         rollback();
     }
 
-    private void rollback(){
-        isConnected = false;
-        nominatedData = null;
+    private void rollback() {
+        mIsConnected = false;
+        mNominatedData = null;
     }
 
-    private void commit(){
-        isConnected = false;
-        data = nominatedData;
-        nominatedData = null;
+    private void commit() {
+        mIsConnected = false;
+        mData = mNominatedData;
+        mNominatedData = null;
         updateUI();
     }
 
-    private void updateUI(){
-        mCtx.updateRecyclerView(data);
+    private void updateUI() {
+        mUpdateRVCallback.updateRecyclerView(mData);
     }
 }

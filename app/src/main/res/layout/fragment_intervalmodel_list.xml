@@ -8,5 +8,5 @@
     android:layout_height="match_parent"
     android:background="@color/colorBlack"
     app:layoutManager="LinearLayoutManager"
-    tools:context="ua.in.quireg.primenumberscalculation.ui.ComputationResultFragment"
+    tools:context="ua.in.quireg.primenumberscalculation.ui.ComputationFragment"
     tools:listitem="@layout/fragment_intervalmodel" />

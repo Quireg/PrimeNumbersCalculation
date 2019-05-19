@@ -4,4 +4,6 @@
     <string name="ui_start_computation">Start computation</string>
     <string name="ui_resume_computation">Resume computation</string>
     <string name="ui_stop_computation">Stop computation</string>
+    <string name="cancel_computation_toast">Computation stopped</string>
+    <string name="complete_computation_toast">Computation completed</string>
 </resources>

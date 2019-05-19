@@ -1,5 +1,7 @@
 package ua.in.quireg.primenumberscalculation.computation;
 
+import android.support.annotation.NonNull;
+
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -22,27 +24,20 @@ public class ThreadFactoryWithThreadName implements ThreadFactory {
     // Executors.DefaultThreadFactory class from the JDK8 source.
     // The only change made is the ability to configure the thread
     // name prefix.
+    private final ThreadGroup mGroup;
+    private final AtomicInteger mThreadNumber = new AtomicInteger(1);
 
-
-    private final ThreadGroup group;
-    private final AtomicInteger threadNumber = new AtomicInteger(1);
-
-    public ThreadFactoryWithThreadName() {
-
+    ThreadFactoryWithThreadName() {
         SecurityManager s = System.getSecurityManager();
-
-        group = (s != null) ? s.getThreadGroup()
+        mGroup = (s != null)
+                ? s.getThreadGroup()
                 : Thread.currentThread().getThreadGroup();
-
     }
 
-
     @Override
-    public Thread newThread(Runnable r) {
-        Thread t = new Thread(group,
-                r,
-                String.valueOf(threadNumber.getAndIncrement()),
-                0);
+    public Thread newThread(@NonNull Runnable r) {
+        Thread t = new Thread(mGroup, r,
+                String.valueOf(mThreadNumber.getAndIncrement()), 0);
         if (t.isDaemon()) {
             t.setDaemon(false);
         }

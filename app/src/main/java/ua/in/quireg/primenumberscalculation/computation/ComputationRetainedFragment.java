@@ -1,41 +1,37 @@
 package ua.in.quireg.primenumberscalculation.computation;
 
-
-import android.content.Context;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
 import android.util.Log;
 import android.util.SparseIntArray;
 
-import org.reactivestreams.Publisher;
+import org.reactivestreams.Subscription;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
+import io.reactivex.BackpressureStrategy;
 import io.reactivex.Flowable;
+import io.reactivex.FlowableSubscriber;
+import io.reactivex.Notification;
 import io.reactivex.disposables.CompositeDisposable;
-import io.reactivex.disposables.Disposable;
-import io.reactivex.processors.BehaviorProcessor;
+import io.reactivex.processors.PublishProcessor;
 import io.reactivex.schedulers.Schedulers;
-import io.reactivex.subscribers.DisposableSubscriber;
 import ua.in.quireg.primenumberscalculation.exceptions.ConnectionUnexpectedlyClosedException;
 import ua.in.quireg.primenumberscalculation.interfaces.TaskCompletedCallback;
 import ua.in.quireg.primenumberscalculation.models.IntervalModel;
-
 
 public class ComputationRetainedFragment extends Fragment {
 
     private static final String LOG_TAG = ComputationRetainedFragment.class.getSimpleName();
 
-    private CompositeDisposable disposables = new CompositeDisposable();
-    private ExecutorService executorService;
-    private TaskCompletedCallback taskCompletedCallback;
-    Disposable storingThreadDisposable;
-
+    private ExecutorService mExecutorService;
+    private CompositeDisposable mCompositeDisposable;
+    private TaskCompletedCallback mTaskCompletedCallback;
 
     public ComputationRetainedFragment() {
     }
@@ -43,29 +39,17 @@ public class ComputationRetainedFragment extends Fragment {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
         setRetainInstance(true);
-
     }
 
-    @Override
-    public void onAttach(Context context) {
-        super.onAttach(context);
-        taskCompletedCallback = (TaskCompletedCallback) context;
-    }
-
-    @Override
-    public void onDetach() {
-        super.onDetach();
-        taskCompletedCallback = null;
+    public void setOnCompleteCallback(TaskCompletedCallback c) {
+        mTaskCompletedCallback = c;
     }
 
     private void sendDataToUI(SparseIntArray array) {
         int retryCount = 0;
-
         while (retryCount < 5) {
             try {
-
                 FakeSocket socket = FakeSocket.connect();
                 socket.transferData(array);
                 socket.close();
@@ -75,36 +59,34 @@ public class ComputationRetainedFragment extends Fragment {
                 retryCount++;
             }
         }
-
-
     }
 
     public void startComputation(List<IntervalModel> models) {
+        mCompositeDisposable = new CompositeDisposable();
+        mExecutorService = Executors.newFixedThreadPool(
+                models.size(), new ThreadFactoryWithThreadName());
 
-        executorService = Executors.newFixedThreadPool(models.size(), new ThreadFactoryWithThreadName());
-        disposables = new CompositeDisposable();
+        //Storing thread implementation which receives prime numbers from manager thread
+        //and sends them to UI via FakeSocket connection.
+        PublishProcessor<SparseIntArray> storingThreadProcessor = PublishProcessor.create();
 
-        //Storing thread implementation which receives prime numbers from "another thread"
-        //and sends them to "UI thread" via FakeSocket connection.
-        BehaviorProcessor<SparseIntArray> storingThreadSubject = BehaviorProcessor.create();
-
-        storingThreadDisposable = storingThreadSubject
-                .onBackpressureLatest()
-                .observeOn(Schedulers.newThread())
-                .subscribeWith(new DisposableSubscriber<SparseIntArray>() {
-                    {
-                        Log.d(LOG_TAG, "Storing thread initiated with thread name: "
-                                + Thread.currentThread().getName());
-                    }
+        FlowableSubscriber<SparseIntArray> fs1 =
+                new FlowableSubscriber<SparseIntArray>() {
+                    Subscription subscription;
                     @Override
-                    protected void onStart() {
-                        request(1);
+                    public void onSubscribe(Subscription s) {
+                        subscription = s;
+                        s.request(1);
                     }
 
                     @Override
-                    public void onNext(SparseIntArray array) {
-                        sendDataToUI(array);
-                        request(1);
+                    public void onNext(SparseIntArray sparseIntArray) {
+                        if (mCompositeDisposable.isDisposed()) {
+                            subscription.cancel();
+                        }
+                        Log.d(LOG_TAG, sparseIntArray.toString());
+                        sendDataToUI(sparseIntArray);
+                        subscription.request(1);
                     }
 
                     @Override
@@ -114,122 +96,117 @@ public class ComputationRetainedFragment extends Fragment {
 
                     @Override
                     public void onComplete() {
-                        stopComputation();
+                        Log.d(LOG_TAG, "Storage thread: " + Thread.currentThread().getName());
+                        completeComputation();
                     }
-                });
+                };
 
-        disposables.add(storingThreadDisposable);
+        storingThreadProcessor
+                .observeOn(Schedulers.newThread())
+                .subscribe(fs1);
 
-        /*
-        Aggregate all flowables into single one
-        that maintain dataflow represented by int[] array,
-        where first element is thread ID and second one is next prime number found.
-        Subscriber stores an amount of found prime numbers and sends it to "storing thread".
-        */
-        List<Flowable<int[]>> flowables = new ArrayList<>();
 
-        for (IntervalModel model : models) {
-            //For each interval create flowable that emits prime numbers.
-            Flowable<int[]> flowable = Flowable.fromPublisher(getPrimeNumbersPublisher(model))
-                    //Each observable computed on it's own thread.
-                    .subscribeOn(Schedulers.from(executorService))
-                    .onBackpressureDrop();
-            flowables.add(flowable);
-        }
+        FlowableSubscriber<Notification<int[]>> flowableSubscriber =
+                new FlowableSubscriber<Notification<int[]>>() {
+                    SparseIntArray sparseIntArray = new SparseIntArray();
+                    Subscription subscription;
 
-        Flowable<int[]> mergedFlowables = Flowable.merge(flowables)
-                //observe computation result from different threads on new thread.
-                .observeOn(Schedulers.newThread());
-
-        Disposable managerThreadDisposable = mergedFlowables
-                .subscribeWith(new DisposableSubscriber<int[]>() {
-
-                    SparseIntArray primeNumbersStorage = new SparseIntArray();
-
-                    {
-                        Log.d(LOG_TAG, "Manager thread initiated with thread name: "
-                                + Thread.currentThread().getName());
-
-//                        //Initially fill storage and send to UI
-//                        for (int i = 0; i < models.size(); i++) {
-//                            primeNumbersStorage.append(i + 1, 0);
-//                        }
-//                        storingThreadSubject.onNext(primeNumbersStorage.clone());
+                    @Override
+                    public void onSubscribe(Subscription s) {
+                        subscription = s;
+                        s.request(1);
                     }
 
                     @Override
-                    protected void onStart() {
-                        request(1);
+                    public void onNext(Notification<int[]> notification) {
+                        if (mCompositeDisposable.isDisposed()) {
+                            subscription.cancel();
+                        }
+
+                        if (notification.isOnNext()) {
+
+                            int totalForKey = sparseIntArray.get(
+                                    notification.getValue()[0], 0);
+
+                            sparseIntArray.put(
+                                    notification.getValue()[0], ++totalForKey);
+
+                            storingThreadProcessor.offer(sparseIntArray);
+                        } else if (notification.isOnError()) {
+                            Log.e(LOG_TAG, notification.getError().getMessage());
+                        } else if (notification.isOnComplete()) {
+                            storingThreadProcessor.onComplete();
+                        }
+
+                        subscription.request(1);
                     }
 
                     @Override
-                    public void onNext(int[] integer) {
+                    public void onError(Throwable t) {
 
-                        int key = integer[0];
-                        int value = integer[1];
-                        primeNumbersStorage.put(key, value);
-                        storingThreadSubject.onNext(primeNumbersStorage);
-                        request(1);
-                    }
-
-                    @Override
-                    public void onError(Throwable e) {
-                        storingThreadSubject.onError(e);
                     }
 
                     @Override
                     public void onComplete() {
-                        //return last values and complete the sequence
-                        storingThreadSubject.onNext(primeNumbersStorage.clone());
-                        storingThreadSubject.onComplete();
+                        Log.d(LOG_TAG, "Manager thread: " + Thread.currentThread().getName());
                     }
+                };
 
-                });
-
-        disposables.add(managerThreadDisposable);
-
+        List<Flowable<int[]>> workerFlowables = new ArrayList<>();
+        for (IntervalModel model : models) {
+            //For each interval create flowable that emits prime numbers.
+            workerFlowables.add(getPrimeNumbersFlowableForModel(model));
+        }
+         Flowable.merge(workerFlowables)
+                .observeOn(Schedulers.newThread())
+                .materialize()
+                .subscribe(flowableSubscriber);
     }
 
-    public void stopComputation() {
-        disposables.dispose();
-        executorService.shutdown();
-        taskCompletedCallback.taskCompleted();
-    }
+    private Flowable<int[]> getPrimeNumbersFlowableForModel(IntervalModel model) {
 
-    private Publisher<int[]> getPrimeNumbersPublisher(IntervalModel model) {
+        Flowable<int[]> f = Flowable.create(emitter -> {
+            Log.d(LOG_TAG, "Computation started on thread number "
+                    + Thread.currentThread().getName());
 
-        return s -> {
-            Log.d(LOG_TAG, "Computation started on thread number " + Thread.currentThread().getName());
+            int[] threadNumberModel = new int[]{model.id, 0};
 
-            int[] primeNumbersFound = new int[]{model.id, 0};
-
-            //implementation uses Sieve of Eratosthenes, described here: https://habrahabr.ru/post/122538/
-
+            // implementation uses Sieve of Eratosthenes
             boolean[] primes = new boolean[model.high - model.low + 1];
             Arrays.fill(primes, true);
 
             for (int i = 2; i < primes.length; ++i) {
                 if (primes[i]) {
-                    for (int j = 2; i * j < primes.length; ++j) {
-                        primes[i * j] = false;
-                    }
-                    //Check if we should stop computation
-                    if (!disposables.isDisposed()) {
-                        //increment prime numbers counter and send it.
-                        primeNumbersFound[1] = primeNumbersFound[1] + 1;
-                        s.onNext(primeNumbersFound);
-
+                    threadNumberModel[1] = i;
+                    if (emitter.requested() > 0) {
+                        emitter.onNext(threadNumberModel);
+                        //sieve other non-prime numbers
+                        for (int j = 2; i * j < primes.length; ++j) {
+                            primes[i * j] = false;
+                        }
+                    } else if (emitter.isCancelled()) {
+                        break;
                     } else {
-                        Thread.currentThread().interrupt();
-                        return;
+                        --i;
+                        TimeUnit.MILLISECONDS.sleep(10);
                     }
-                    //Log.d(LOG_TAG, System.currentTimeMillis() + " Thread/number " + Thread.currentThread().getName() + "/" + (model.low + i));
                 }
             }
+            emitter.onComplete();
+        }, BackpressureStrategy.MISSING);
 
-            s.onComplete();
-        };
+        return f.subscribeOn(Schedulers.from(mExecutorService));
+    }
 
+    public void completeComputation() {
+        mCompositeDisposable.dispose();
+        mExecutorService.shutdown();
+        mTaskCompletedCallback.taskCompleted();
+    }
+
+    public void cancelComputation() {
+        mCompositeDisposable.dispose();
+        mExecutorService.shutdown();
     }
 }
 
